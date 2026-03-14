@@ -22,4 +22,7 @@ The idea is to have one place where I can see what’s coming up and mark tasks 
 On the first run, the app creates a LocalDB database and seeds some sample data.
 
 ## Screenshots
-(screenshots from the working application)
+![Home](home.png)
+![Tasks](Tasks.png)
+![Create Task](createTask.png)
+![Subjects](Subjects.png)
