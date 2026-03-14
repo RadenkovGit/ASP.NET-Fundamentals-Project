@@ -1,0 +1,38 @@
+@model HomeIndexViewModel
+@{
+    ViewData["Title"] = "Home";
+}
+
+<div class="p-4 mb-4 bg-light rounded-3 border">
+    <h1 class="display-6">Welcome to Student Planner</h1>
+    <p class="lead mb-0">A simple project for tracking subjects, study tasks and notes.</p>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6 mb-3">
+        <div class="stat-box">
+            <h3>@Model.TotalTasks</h3>
+            <p class="mb-0">Total tasks</p>
+        </div>
+    </div>
+    <div class="col-md-6 mb-3">
+        <div class="stat-box">
+            <h3>@Model.CompletedTasks</h3>
+            <p class="mb-0">Completed tasks</p>
+        </div>
+    </div>
+</div>
+
+<h2 class="mb-3">Upcoming Tasks</h2>
+
+@if (Model.UpcomingTasks.Any())
+{
+    @foreach (var task in Model.UpcomingTasks)
+    {
+        <partial name="_TaskCardPartial" model="task" />
+    }
+}
+else
+{
+    <p>No upcoming tasks yet.</p>
+}

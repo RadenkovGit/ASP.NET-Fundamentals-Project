@@ -1,0 +1,14 @@
+@model StudyTask
+
+<div class="card shadow-sm mb-3">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <h5 class="card-title mb-1">@Model.Title</h5>
+                <p class="text-muted mb-1">@Model.Subject?.Name</p>
+                <p class="mb-0"><strong>Due:</strong> @Model.Deadline.ToShortDateString()</p>
+            </div>
+            <span class="badge bg-secondary">@Model.Priority</span>
+        </div>
+    </div>
+</div>

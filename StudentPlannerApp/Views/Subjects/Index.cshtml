@@ -1,0 +1,21 @@
+@model IEnumerable<Subject>
+@{
+    ViewData["Title"] = "Subjects";
+}
+
+<h1 class="h3 mb-3">Subjects</h1>
+
+<div class="row">
+    @foreach (var subject in Model)
+    {
+        <div class="col-md-4 mb-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h2 class="h5">@subject.Name</h2>
+                    <p><strong>Lecturer:</strong> @subject.Lecturer</p>
+                    <p class="mb-0"><strong>Tasks:</strong> @subject.StudyTasks.Count</p>
+                </div>
+            </div>
+        </div>
+    }
+</div>

@@ -1,0 +1,36 @@
+@model StudyTask
+@{
+    ViewData["Title"] = "Task Details";
+}
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <h1 class="h3">@Model.Title</h1>
+        <p><strong>Subject:</strong> @Model.Subject?.Name</p>
+        <p><strong>Description:</strong> @Model.Description</p>
+        <p><strong>Due Date:</strong> @Model.Deadline.ToShortDateString()</p>
+        <p><strong>Priority:</strong> @Model.Priority</p>
+        <p><strong>Completed:</strong> @(Model.IsCompleted ? "Yes" : "No")</p>
+
+        <h2 class="h5 mt-4">Notes</h2>
+        @if (Model.Notes.Any())
+        {
+            <ul class="list-group mb-3">
+                @foreach (var note in Model.Notes)
+                {
+                    <li class="list-group-item">
+                        <div>@note.Content</div>
+                        <small class="text-muted">@note.CreatedOn</small>
+                    </li>
+                }
+            </ul>
+        }
+        else
+        {
+            <p>No notes yet.</p>
+        }
+
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">Edit</a>
+        <a asp-action="Index" class="btn btn-secondary">Back</a>
+    </div>
+</div>

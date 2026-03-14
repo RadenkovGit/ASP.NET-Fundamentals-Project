@@ -1,0 +1,39 @@
+@model IEnumerable<StudyTask>
+@{
+    ViewData["Title"] = "Tasks";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Study Tasks</h1>
+    <a asp-action="Create" class="btn btn-success">Create New Task</a>
+</div>
+
+<table class="table table-striped table-bordered align-middle">
+    <thead class="table-light">
+        <tr>
+            <th>Title</th>
+            <th>Subject</th>
+            <th>Due Date</th>
+            <th>Priority</th>
+            <th>Completed</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var task in Model)
+    {
+        <tr>
+            <td>@task.Title</td>
+            <td>@task.Subject?.Name</td>
+            <td>@task.Deadline.ToShortDateString()</td>
+            <td>@task.Priority</td>
+            <td>@(task.IsCompleted ? "Yes" : "No")</td>
+            <td class="text-nowrap">
+                <a asp-action="Details" asp-route-id="@task.Id" class="btn btn-sm btn-outline-primary">Details</a>
+                <a asp-action="Edit" asp-route-id="@task.Id" class="btn btn-sm btn-outline-warning">Edit</a>
+                <a asp-action="Delete" asp-route-id="@task.Id" class="btn btn-sm btn-outline-danger">Delete</a>
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>

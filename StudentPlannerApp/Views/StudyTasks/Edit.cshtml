@@ -1,0 +1,19 @@
+@model StudyTask
+@{
+    ViewData["Title"] = "Edit Task";
+}
+
+<h1 class="h3 mb-3">Edit Task</h1>
+
+<form asp-action="Edit" method="post" class="card shadow-sm">
+    <div class="card-body">
+        <input asp-for="Id" type="hidden" />
+        <partial name="_TaskFormPartial" model="Model" />
+        <button type="submit" class="btn btn-warning">Update</button>
+        <a asp-action="Index" class="btn btn-secondary">Back</a>
+    </div>
+</form>
+
+@section Scripts {
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+}
