@@ -1,0 +1,163 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/RadenkovGit/ASP.NET-Fundamentals-Project/pass-plans/pass-plan.schema.json",
+  "title": "Pass Orchestrator v1 - Pass Plan",
+  "description": "Machine-readable definition of one 'X Pass': an ordered set of sub-passes executed under the Pass Orchestrator lifecycle. See docs/pass-orchestrator.md for the full contract.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "pass_id",
+    "pass_title",
+    "pass_branch",
+    "base_branch",
+    "goal",
+    "global_constraints",
+    "global_forbidden_paths",
+    "sub_passes",
+    "final_validation"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "Version of this pass-plan schema. Bump only on breaking format changes.",
+      "const": "1.0"
+    },
+    "pass_id": {
+      "type": "string",
+      "description": "Short, stable, kebab-case identifier for the whole X Pass. Used as a prefix in checkpoint commit messages.",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "pass_title": {
+      "type": "string",
+      "description": "Human-readable title of the X Pass."
+    },
+    "pass_branch": {
+      "type": "string",
+      "description": "The single dedicated branch the entire X Pass lives on. Must never be 'main' or the repository's default branch.",
+      "pattern": "^pass/[A-Za-z0-9._/-]+$",
+      "not": {
+        "enum": ["main", "master"]
+      }
+    },
+    "base_branch": {
+      "type": "string",
+      "description": "Branch that pass_branch was created from and will eventually be compared/reviewed against (e.g. 'main'). Never written to directly by the orchestrator.",
+      "pattern": "^(main|master|develop|release/[A-Za-z0-9._/-]+)$"
+    },
+    "goal": {
+      "type": "string",
+      "description": "One paragraph describing the overall outcome the X Pass is meant to achieve."
+    },
+    "global_constraints": {
+      "type": "array",
+      "description": "Constraints that apply to every sub-pass in this plan (paths that must never change, behaviors that are always forbidden, etc.).",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "global_forbidden_paths": {
+      "type": "array",
+      "description": "Glob-style paths that must never be modified by any sub-pass.",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "sub_passes": {
+      "type": "array",
+      "description": "Ordered list of sub-passes. Executed strictly in array order; never reordered or parallelized.",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "objective",
+          "allowed_scope",
+          "allowed_paths",
+          "forbidden_scope",
+          "forbidden_paths",
+          "acceptance_criteria",
+          "validation"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Sub-pass id, conventionally '<pass_id>.<n>' (e.g. 'docs-example.1').",
+            "pattern": "^[a-z0-9][a-z0-9-]*\\.[0-9]+$"
+          },
+          "title": {
+            "type": "string",
+            "description": "Short human-readable title, also used verbatim in the checkpoint commit message.",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9 ._:/()#-]*$"
+          },
+          "objective": {
+            "type": "string",
+            "description": "What this sub-pass must accomplish, scoped narrowly."
+          },
+          "allowed_scope": {
+            "type": "array",
+            "description": "Glob-style paths or descriptions of the only things this sub-pass may touch.",
+            "items": { "type": "string" },
+            "minItems": 1
+          },
+          "allowed_paths": {
+            "type": "array",
+            "description": "Machine-checkable glob-style paths that are the only paths this sub-pass may modify.",
+            "items": { "type": "string" },
+            "minItems": 1
+          },
+          "forbidden_scope": {
+            "type": "array",
+            "description": "Glob-style paths or explicit call-outs of things this sub-pass must NOT touch, even if convenient.",
+            "items": { "type": "string" },
+            "minItems": 1
+          },
+          "forbidden_paths": {
+            "type": "array",
+            "description": "Machine-checkable glob-style paths that this sub-pass must not modify.",
+            "items": { "type": "string" },
+            "minItems": 1
+          },
+          "acceptance_criteria": {
+            "type": "array",
+            "description": "Concrete, checkable statements that must all be true for this sub-pass to pass its gate.",
+            "items": { "type": "string" },
+            "minItems": 1
+          },
+          "validation": {
+            "type": "array",
+            "description": "Shell commands or explicit manual checks to run to validate this sub-pass before the checkpoint commit. Prefix non-shell checks with 'manual:'.",
+            "items": { "type": "string" },
+            "minItems": 1
+          },
+          "visual_checks": {
+            "type": "array",
+            "description": "Optional browser/visual/UI checks (e.g. via chrome-devtools tools) required for this sub-pass. Omit or leave empty for non-UI sub-passes.",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    },
+    "final_validation": {
+      "type": "object",
+      "description": "Validation performed once, after all sub-passes have passed, comparing base_branch..pass_branch as a whole.",
+      "required": ["requirements", "commands"],
+      "additionalProperties": false,
+      "properties": {
+        "requirements": {
+          "type": "array",
+          "description": "Statements that must hold across the full pass (interaction between sub-passes, no unrelated changes, main untouched, etc.).",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        "commands": {
+          "type": "array",
+          "description": "Shell commands to run once at the end to validate the full diff from base_branch to HEAD of pass_branch.",
+          "items": { "type": "string" },
+          "minItems": 1
+        }
+      }
+    }
+  }
+}

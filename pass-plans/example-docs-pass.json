@@ -1,0 +1,142 @@
+{
+  "schema_version": "1.0",
+  "pass_id": "docs-example",
+  "pass_title": "Documentation-Only Example Pass (Orchestrator E2E Test)",
+  "pass_branch": "pass/docs-example-v1",
+  "base_branch": "main",
+  "goal": "Exercise the Pass Orchestrator end-to-end with three small, harmless, documentation-only sub-passes that add and cross-link contributor-facing docs, without touching any application code.",
+  "global_constraints": [
+    "Never modify anything under StudentPlannerApp/.",
+    "Never modify .github/workflows/**.",
+    "Never modify StudentPlannerApp.sln.",
+    "Only add or edit Markdown files under docs/ and the repository root README.md.",
+    "Never touch the main branch; all work happens on pass_branch only.",
+    "Never commit unrelated or accidental files (build output, .vs/, bin/, obj/)."
+  ],
+  "global_forbidden_paths": [
+    "StudentPlannerApp/**",
+    ".github/workflows/**",
+    "StudentPlannerApp.sln",
+    ".vs/**",
+    "bin/**",
+    "obj/**"
+  ],
+  "sub_passes": [
+    {
+      "id": "docs-example.1",
+      "title": "Add CONTRIBUTING.md",
+      "objective": "Create a top-level CONTRIBUTING.md describing how to propose changes to this repository.",
+      "allowed_scope": [
+        "CONTRIBUTING.md (new file)"
+      ],
+      "allowed_paths": [
+        "CONTRIBUTING.md"
+      ],
+      "forbidden_scope": [
+        "StudentPlannerApp/**",
+        "README.md",
+        "docs/**",
+        ".github/**"
+      ],
+      "forbidden_paths": [
+        "StudentPlannerApp/**",
+        "README.md",
+        "docs/**",
+        ".github/**"
+      ],
+      "acceptance_criteria": [
+        "CONTRIBUTING.md exists at the repository root.",
+        "It explains how to open issues/PRs and references that the project uses the @claude GitHub Action for assisted changes.",
+        "No other file is modified."
+      ],
+      "validation": [
+        "test -f CONTRIBUTING.md",
+        "test -z \"$(git status --porcelain -- . ':!CONTRIBUTING.md')\""
+      ]
+    },
+    {
+      "id": "docs-example.2",
+      "title": "Cross-link docs from README",
+      "objective": "Add a short 'Documentation' section to README.md linking to docs/claude-connectivity-test.md and the new CONTRIBUTING.md.",
+      "allowed_scope": [
+        "README.md (append a new section only)"
+      ],
+      "allowed_paths": [
+        "README.md"
+      ],
+      "forbidden_scope": [
+        "StudentPlannerApp/**",
+        "CONTRIBUTING.md",
+        "docs/**",
+        ".github/**"
+      ],
+      "forbidden_paths": [
+        "StudentPlannerApp/**",
+        "CONTRIBUTING.md",
+        "docs/**",
+        ".github/**"
+      ],
+      "acceptance_criteria": [
+        "README.md contains a new 'Documentation' section.",
+        "The section links to CONTRIBUTING.md and docs/claude-connectivity-test.md.",
+        "All pre-existing README content is preserved unchanged (append-only diff).",
+        "No other file is modified."
+      ],
+      "validation": [
+        "grep -q 'Documentation' README.md",
+        "grep -q 'CONTRIBUTING.md' README.md",
+        "grep -q 'claude-connectivity-test.md' README.md",
+        "! git diff -- README.md | grep -E '^-[^-]'",
+        "test -z \"$(git status --porcelain -- . ':!README.md')\""
+      ]
+    },
+    {
+      "id": "docs-example.3",
+      "title": "Summarize the example pass in docs/",
+      "objective": "Add docs/pass-orchestrator-example-notes.md summarizing what sub-passes .1 and .2 did, as a worked example of orchestrator output.",
+      "allowed_scope": [
+        "docs/pass-orchestrator-example-notes.md (new file)"
+      ],
+      "allowed_paths": [
+        "docs/pass-orchestrator-example-notes.md"
+      ],
+      "forbidden_scope": [
+        "StudentPlannerApp/**",
+        "README.md",
+        "CONTRIBUTING.md",
+        ".github/**"
+      ],
+      "forbidden_paths": [
+        "StudentPlannerApp/**",
+        "README.md",
+        "CONTRIBUTING.md",
+        ".github/**"
+      ],
+      "acceptance_criteria": [
+        "docs/pass-orchestrator-example-notes.md exists.",
+        "It briefly describes sub-passes docs-example.1 and docs-example.2 and links back to the pass plan file pass-plans/example-docs-pass.json.",
+        "No other file is modified."
+      ],
+      "validation": [
+        "test -f docs/pass-orchestrator-example-notes.md",
+        "grep -q 'docs-example.1' docs/pass-orchestrator-example-notes.md",
+        "grep -q 'docs-example.2' docs/pass-orchestrator-example-notes.md",
+        "test -z \"$(git status --porcelain -- . ':!docs/pass-orchestrator-example-notes.md')\""
+      ]
+    }
+  ],
+  "final_validation": {
+    "requirements": [
+      "Exactly three checkpoint commits exist on pass_branch beyond base_branch, one per sub-pass, in order.",
+      "The cumulative diff from base_branch to HEAD touches only: CONTRIBUTING.md, README.md, docs/pass-orchestrator-example-notes.md.",
+      "StudentPlannerApp/**, StudentPlannerApp.sln, and .github/workflows/** are byte-for-byte unchanged versus base_branch.",
+      "main was never checked out for writes and was never pushed to.",
+      "No force-push occurred at any point."
+    ],
+    "commands": [
+      "git diff --stat main...HEAD",
+      "test -z \"$(git diff --name-only main...HEAD | grep -vE '^(CONTRIBUTING.md|README.md|docs/pass-orchestrator-example-notes.md)$')\"",
+      "test \"$(git log --oneline main..HEAD | wc -l | tr -d ' ')\" = \"3\""
+    ]
+  }
+}
