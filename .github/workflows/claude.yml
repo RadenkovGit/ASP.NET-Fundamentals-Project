@@ -47,5 +47,5 @@ jobs:
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options
           claude_args: |
-            --allowedTools "Bash(git fetch origin),Bash(git checkout pass/*),Bash(git checkout -b pass/* main),Bash(git branch pass/* main),Bash(git switch pass/*),Bash(git switch -c pass/* main),Bash(git push origin pass/*),Bash(git push -u origin pass/*)"
+            --allowedTools "Bash(git fetch origin),Bash(git checkout pass/*),Bash(git checkout -b pass/* main),Bash(git branch pass/* main),Bash(git switch pass/*),Bash(git switch -c pass/* main),Bash(git push origin pass/*),Bash(git push -u origin pass/*),Bash(gh issue view *),Bash(gh pr view *)"
 

@@ -36,6 +36,12 @@ a human to babysit every step.
    in the same order as the plan, with no missing, duplicate, out-of-order, or
    extra commits. If history does not match the plan exactly, stop with
    `BLOCKED_CRITICAL`.
+6. If the plan has `audit.required: true`, inspect the GitHub issue/PR comment
+   thread that invoked the pass before continuing past any existing checkpoint.
+   Each completed sub-pass must have a machine-readable `AUDIT_APPROVED` entry
+   for its exact checkpoint SHA, posted by an authorized GitHub comment author.
+   Missing, stale, mismatched, unauthorized, or rejected audit entries mean the
+   pass is waiting for external audit; do not continue.
 
 ## 1. Hard safety invariants (never violate these)
 
@@ -106,11 +112,58 @@ h. **Checkpoint commit** — create exactly ONE commit for this sub-pass, on
 Do not begin the next sub-pass until the current one's checkpoint commit exists
 and its gate has passed.
 
+If the plan has `audit.required: true`, the gate is not complete after the
+checkpoint commit alone. Push the checkpoint to `pass_branch`, then stop and emit
+the exact literal marker on its own line:
+
+```
+AWAITING_AUDIT
+```
+
+Follow it with:
+
+- pass id/title
+- sub-pass id/title
+- checkpoint commit SHA/message
+- changed files for that checkpoint
+- validation commands/checks already completed
+- a ready-to-use ChatGPT audit prompt
+- the exact approval entry format required to resume
+
+Do not start the next sub-pass in the same run. This is an expected pause, not a
+`BLOCKED_CRITICAL`.
+
 ## 3. Between sub-passes
 
 After each checkpoint commit, re-confirm the hard invariants in §1 still hold
 (especially: still on `pass_branch`, `base_branch` untouched, no unrelated files
 staged). Only then proceed to the next sub-pass.
+
+When `audit.required: true`, also require a GitHub comment ledger entry in this
+exact fenced format before proceeding:
+
+```text
+AUDIT_APPROVED
+pass_id: <pass_id>
+sub_pass_id: <sub_pass.id>
+checkpoint_sha: <full checkpoint sha>
+source: <source label from audit.approval_sources>
+auditor: <name or handle>
+summary: <one-line verdict>
+```
+
+Only accept the entry if `pass_id`, `sub_pass_id`, and `checkpoint_sha` exactly
+match the checkpoint being cleared. The GitHub comment author must satisfy all of:
+
+- `author.login` is listed in `audit.approved_auditors`
+- `authorAssociation` is one of `OWNER`, `MEMBER`, or `COLLABORATOR`
+- the entry's `auditor:` value exactly matches `author.login`
+
+The `source:` value must be listed in `audit.approval_sources`. If the same
+sub-pass has both approval and rejection entries, the newest matching entry from
+an authorized auditor wins. If the newest matching entry is not approved, has an
+unauthorized source, or was posted by an unauthorized author, emit
+`AWAITING_AUDIT` again and stop.
 
 ## 4. BLOCKED_CRITICAL
 
@@ -161,6 +214,8 @@ Once every sub-pass has a checkpoint commit and passed its own gate:
 5. Confirm there are no unrelated/stray changes (only files touched are ones
    declared across the sub-passes' `allowed_paths`, and no files match
    `global_forbidden_paths`).
+6. If `audit.required: true`, confirm every checkpoint commit has a matching
+   `AUDIT_APPROVED` GitHub comment ledger entry for its exact SHA.
 
 If anything in this final check fails, treat it as a defect. Because all
 sub-pass checkpoint commits already exist at this stage, do not create extra
