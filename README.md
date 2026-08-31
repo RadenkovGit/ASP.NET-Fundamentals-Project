@@ -26,3 +26,7 @@ On the first run, the app creates a LocalDB database and seeds some sample data.
 ![Tasks](Tasks.png)
 ![Create Task](createTask.png)
 ![Subjects](Subjects.png)
+
+## Documentation
+- [CONTRIBUTING.md](CONTRIBUTING.md) — how to propose changes to this repository.
+- [docs/claude-connectivity-test.md](docs/claude-connectivity-test.md) — Claude GitHub Action connectivity test notes.
