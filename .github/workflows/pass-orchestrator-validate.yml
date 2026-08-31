@@ -1,0 +1,104 @@
+name: Pass Orchestrator Validation
+
+"on":
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      plan:
+        description: "Pass plan path"
+        required: true
+        type: string
+        default: pass-plans/example-docs-pass.json
+      head_ref:
+        description: "Optional pass branch to validate, e.g. pass/docs-example-v1"
+        required: false
+        type: string
+      base_ref:
+        description: "Base branch for optional pass branch validation"
+        required: false
+        type: string
+        default: main
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate pass plans
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t plans < <(find pass-plans -maxdepth 1 -name '*.json' ! -name '*.schema.json' -print | sort)
+          if [ "${#plans[@]}" -eq 0 ]; then
+            echo "No pass plans found."
+            exit 0
+          fi
+          python3 scripts/validate_pass_plan.py "${plans[@]}"
+
+      - name: Validate pass branch shape for PR
+        if: startsWith(github.head_ref, 'pass/')
+        shell: bash
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_BRANCH: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+          BASE_REF="origin/${BASE_BRANCH}"
+          git fetch origin \
+            "+${BASE_BRANCH}:refs/remotes/origin/${BASE_BRANCH}" \
+            "+${HEAD_REF}:refs/remotes/origin/${HEAD_REF}"
+
+          plan="$(python3 - <<'PY'
+import json
+from pathlib import Path
+import os
+
+head_ref = os.environ["HEAD_REF"]
+matches = []
+for path in sorted(Path("pass-plans").glob("*.json")):
+    if path.name.endswith(".schema.json"):
+        continue
+    with path.open("r", encoding="utf-8") as handle:
+        data = json.load(handle)
+    if data.get("pass_branch") == head_ref:
+        matches.append(str(path))
+
+if len(matches) != 1:
+    raise SystemExit(f"Expected exactly one pass plan for {head_ref}, found {len(matches)}: {matches}")
+
+print(matches[0])
+PY
+)"
+
+          python3 scripts/validate_pass_branch.py \
+            --plan "${plan}" \
+            --base-ref "${BASE_REF}" \
+            --head-ref "origin/${HEAD_REF}"
+
+      - name: Validate pass branch shape for manual dispatch
+        if: github.event_name == 'workflow_dispatch' && startsWith(inputs.head_ref, 'pass/')
+        shell: bash
+        env:
+          HEAD_REF: ${{ inputs.head_ref }}
+          BASE_BRANCH: ${{ inputs.base_ref }}
+          PLAN_INPUT: ${{ inputs.plan }}
+        run: |
+          set -euo pipefail
+          BASE_REF="origin/${BASE_BRANCH}"
+          git fetch origin \
+            "+${BASE_BRANCH}:refs/remotes/origin/${BASE_BRANCH}" \
+            "+${HEAD_REF}:refs/remotes/origin/${HEAD_REF}"
+
+          python3 scripts/validate_pass_branch.py \
+            --plan "${PLAN_INPUT}" \
+            --base-ref "${BASE_REF}" \
+            --head-ref "origin/${HEAD_REF}"

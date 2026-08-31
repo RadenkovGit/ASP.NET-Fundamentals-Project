@@ -19,6 +19,9 @@ files, or merge PRs through the GitHub connector in this setup.
 | Orchestration instructions | `.claude/skills/pass-orchestrator/SKILL.md` | The lifecycle contract and safety gates Claude follows when orchestrating a pass. This is a Claude Code [Agent Skill](https://code.claude.com/docs) — the current project-local mechanism for reusable instructions, invoked explicitly (e.g. `/pass-orchestrator ...`) rather than firing automatically, to avoid silent scope creep. |
 | Pass-plan schema | `pass-plans/pass-plan.schema.json` | JSON Schema defining the machine-readable format for an "X Pass" and its ordered sub-passes. |
 | Example pass plan | `pass-plans/example-docs-pass.json` | A concrete, harmless, docs-only 3-sub-pass plan used to test the orchestrator end-to-end. |
+| Plan validator | `scripts/validate_pass_plan.py` | Dependency-free validation for required fields, pass/sub-pass id shape, branch safety, path fields, and validation command shape. |
+| Branch validator | `scripts/validate_pass_branch.py` | Checks a completed `pass/...` branch for one checkpoint commit per sub-pass, deterministic commit messages, and per-commit changed paths within scope. |
+| CI validation | `.github/workflows/pass-orchestrator-validate.yml` | Read-only GitHub Action that validates pass plans on PRs and validates `pass/...` branch PRs against their matching pass plan. |
 | This document | `docs/pass-orchestrator.md` | Human-facing policy explanation. |
 
 No changes were made to `.github/workflows/claude.yml` and no new secrets or GitHub
@@ -63,6 +66,30 @@ run.
 - Commits are made only on `pass_branch`, never on `base_branch`.
 - Because each sub-pass is isolated to one commit, any single sub-pass can be
   cleanly reverted independently of the others (see below).
+
+## Automated validation
+
+Pass Orchestrator v1.1 adds a lightweight validation layer:
+
+- `scripts/validate_pass_plan.py` validates pass-plan files without external
+  packages.
+- `scripts/validate_pass_branch.py` validates completed `pass/...` branches
+  against the selected pass plan.
+- `.github/workflows/pass-orchestrator-validate.yml` runs these checks on PRs to
+  `main` with read-only repository permissions.
+
+For normal infrastructure PRs, CI validates the plan files only. For PRs whose
+head branch starts with `pass/`, CI also finds the matching plan by `pass_branch`
+and checks that the branch has exactly one correctly named checkpoint commit per
+sub-pass, with each commit touching only that sub-pass's `allowed_paths` and no
+`forbidden_paths` / `global_forbidden_paths`.
+
+Path patterns use Python `fnmatch` semantics. In practice, `*` and `**` can match
+across `/`, so use exact paths for single-file sub-passes and directory patterns
+such as `StudentPlannerApp/**` for forbidden trees.
+
+This does not replace human review. It is a hard, repeatable tripwire for the
+most important shape and scope invariants.
 
 ## `BLOCKED_CRITICAL` semantics
 
@@ -151,8 +178,9 @@ authenticated coordination channel. Until then, final merge remains manual.
   safety boundary is currently the instructions in `SKILL.md`, not a hard
   technical sandbox. Human review before merge is still required.
 - Schema validation of pass-plan JSON is done by Claude reading the schema at
-  runtime, not by a CI-enforced validator (no new dependency was introduced for
-  this in v1).
+  runtime and by the lightweight CI validators in this repository. The validators
+  intentionally avoid third-party dependencies, so they check the safety-critical
+  plan shape rather than every JSON Schema draft feature.
 - Resuming after `BLOCKED_CRITICAL` relies on git history (checkpoint commits) on
   `pass_branch` to infer progress; it does not persist separate run-state.
 - Designed for one pass in flight per branch; running multiple concurrent X
