@@ -21,7 +21,7 @@ files, or merge PRs through the GitHub connector in this setup.
 | Example pass plan | `pass-plans/example-docs-pass.json` | A concrete, harmless, docs-only 3-sub-pass plan used to test the orchestrator end-to-end. |
 | Plan validator | `scripts/validate_pass_plan.py` | Dependency-free validation for required fields, pass/sub-pass id shape, branch safety, path fields, and validation command shape. |
 | Branch validator | `scripts/validate_pass_branch.py` | Checks a completed `pass/...` branch for one checkpoint commit per sub-pass, deterministic commit messages, and per-commit changed paths within scope. |
-| CI validation | `.github/workflows/pass-orchestrator-validate.yml` | Read-only GitHub Action that validates pass plans on PRs and validates `pass/...` branch PRs against their matching pass plan. |
+| CI validation | `.github/workflows/pass-orchestrator-validation.yml` | Read-only GitHub Action that validates pass plans on PRs and validates `pass/...` branch PRs against their matching pass plan. |
 | This document | `docs/pass-orchestrator.md` | Human-facing policy explanation. |
 
 No changes were made to `.github/workflows/claude.yml` and no new secrets or GitHub
@@ -75,7 +75,7 @@ Pass Orchestrator v1.1 adds a lightweight validation layer:
   packages.
 - `scripts/validate_pass_branch.py` validates completed `pass/...` branches
   against the selected pass plan.
-- `.github/workflows/pass-orchestrator-validate.yml` runs these checks on PRs to
+- `.github/workflows/pass-orchestrator-validation.yml` runs these checks on PRs to
   `main` with read-only repository permissions.
 
 For normal infrastructure PRs, CI validates the plan files only. For PRs whose
