@@ -152,12 +152,27 @@ auditor: <name or handle>
 summary: <one-line verdict>
 ```
 
+An authorized reviewer may also explicitly reject a checkpoint with:
+
+```text
+AUDIT_REJECTED
+pass_id: <pass_id>
+sub_pass_id: <sub_pass.id>
+checkpoint_sha: <full checkpoint sha>
+source: <source label from audit.approval_sources>
+auditor: <name or handle>
+summary: <one-line reason>
+```
+
 Only accept the entry if `pass_id`, `sub_pass_id`, and `checkpoint_sha` exactly
 match the checkpoint being cleared. The GitHub comment author must satisfy all of:
 
 - `author.login` is listed in `audit.approved_auditors`
 - `authorAssociation` is one of `OWNER`, `MEMBER`, or `COLLABORATOR`
 - the entry's `auditor:` value exactly matches `author.login`
+
+An auditor listed in `audit.approved_auditors` but lacking one of those accepted
+repository associations cannot clear the gate.
 
 The `source:` value must be listed in `audit.approval_sources`. If the same
 sub-pass has both approval and rejection entries, the newest matching entry from

@@ -100,13 +100,27 @@ auditor: <name or handle>
 summary: <one-line verdict>
 ```
 
+An authorized reviewer can explicitly reject a checkpoint with the same fields:
+
+```text
+AUDIT_REJECTED
+pass_id: <pass_id>
+sub_pass_id: <sub_pass.id>
+checkpoint_sha: <full checkpoint sha>
+source: <source label from audit.approval_sources>
+auditor: <name or handle>
+summary: <one-line reason>
+```
+
 On resume, Claude must re-read the comment thread and continue only if the entry
 matches the exact pass id, sub-pass id, checkpoint SHA, accepted source, and an
 authorized GitHub comment author. The GitHub comment author's login must be
 listed in `audit.approved_auditors`, the comment's `authorAssociation` must be
 `OWNER`, `MEMBER`, or `COLLABORATOR`, and the entry's `auditor:` value must match
-that GitHub login. Missing, stale, or unauthorized approval keeps the pass
-paused. A rejected or ambiguous audit should not be converted into approval.
+that GitHub login. A listed auditor who is not also a repository owner, member,
+or collaborator cannot clear the gate. Missing, stale, rejected, or unauthorized
+approval keeps the pass paused. A rejected or ambiguous audit should not be
+converted into approval.
 
 For the supervised-auto workflow, a local Codex/ChatGPT orchestrator can handle
 `AWAITING_AUDIT` silently by reading the diff, posting the approval comment using
