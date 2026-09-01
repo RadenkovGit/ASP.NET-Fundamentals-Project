@@ -64,7 +64,7 @@
     "audit": {
       "type": "object",
       "description": "Optional independent audit gate configuration. Omit or set required=false for v1 behavior.",
-      "required": ["required", "mode", "approved_auditors"],
+      "required": ["required", "mode", "approval_sources", "approved_auditors"],
       "additionalProperties": false,
       "properties": {
         "required": {
