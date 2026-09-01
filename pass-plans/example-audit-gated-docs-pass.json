@@ -1,0 +1,118 @@
+{
+  "schema_version": "1.0",
+  "pass_id": "audit-docs-example",
+  "pass_title": "Audit-Gated Documentation Example Pass",
+  "pass_branch": "pass/audit-docs-example-v1",
+  "base_branch": "main",
+  "goal": "Exercise the Pass Orchestrator independent audit gate with two harmless documentation-only sub-passes, pausing after each checkpoint until an external GitHub comment ledger entry approves the exact commit SHA.",
+  "global_constraints": [
+    "Never modify anything under StudentPlannerApp/.",
+    "Never modify .github/workflows/**.",
+    "Never modify StudentPlannerApp.sln.",
+    "Only add Markdown files under docs/.",
+    "Never touch the main branch; all work happens on pass_branch only.",
+    "Never commit unrelated or accidental files (build output, .vs/, bin/, obj/)."
+  ],
+  "global_forbidden_paths": [
+    "StudentPlannerApp/**",
+    ".github/workflows/**",
+    "StudentPlannerApp.sln",
+    ".vs/**",
+    "bin/**",
+    "obj/**"
+  ],
+  "audit": {
+    "required": true,
+    "mode": "github-comment-ledger",
+    "approval_sources": [
+      "chatgpt-relayed-by-human",
+      "codex-local"
+    ],
+    "approved_auditors": [
+      "RadenkovGit"
+    ]
+  },
+  "sub_passes": [
+    {
+      "id": "audit-docs-example.1",
+      "title": "Add audit gate notes",
+      "objective": "Create docs/audit-gate-notes.md with a short explanation of the audit ledger concept.",
+      "allowed_scope": [
+        "docs/audit-gate-notes.md (new file)"
+      ],
+      "allowed_paths": [
+        "docs/audit-gate-notes.md"
+      ],
+      "forbidden_scope": [
+        "StudentPlannerApp/**",
+        "README.md",
+        ".github/**",
+        "pass-state/**"
+      ],
+      "forbidden_paths": [
+        "StudentPlannerApp/**",
+        "README.md",
+        ".github/**",
+        "pass-state/**"
+      ],
+      "acceptance_criteria": [
+        "docs/audit-gate-notes.md exists.",
+        "It explains that the audit ledger gates continuation by exact checkpoint SHA.",
+        "No other file is modified by this sub-pass."
+      ],
+      "validation": [
+        "test -f docs/audit-gate-notes.md",
+        "grep -q 'checkpoint SHA' docs/audit-gate-notes.md",
+        "test -z \"$(git status --porcelain -- . ':!docs/audit-gate-notes.md')\""
+      ]
+    },
+    {
+      "id": "audit-docs-example.2",
+      "title": "Add audit resume notes",
+      "objective": "Create docs/audit-resume-notes.md describing how resume checks the ledger before continuing.",
+      "allowed_scope": [
+        "docs/audit-resume-notes.md (new file)"
+      ],
+      "allowed_paths": [
+        "docs/audit-resume-notes.md"
+      ],
+      "forbidden_scope": [
+        "StudentPlannerApp/**",
+        "README.md",
+        ".github/**",
+        "pass-state/**"
+      ],
+      "forbidden_paths": [
+        "StudentPlannerApp/**",
+        "README.md",
+        ".github/**",
+        "pass-state/**"
+      ],
+      "acceptance_criteria": [
+        "docs/audit-resume-notes.md exists.",
+        "It states that a matching APPROVED ledger entry is required before the next sub-pass.",
+        "No other file is modified by this sub-pass."
+      ],
+      "validation": [
+        "test -f docs/audit-resume-notes.md",
+        "grep -q 'APPROVED ledger entry' docs/audit-resume-notes.md",
+        "test -z \"$(git status --porcelain -- . ':!docs/audit-resume-notes.md')\""
+      ]
+    }
+  ],
+  "final_validation": {
+    "requirements": [
+      "Exactly two checkpoint commits exist on pass_branch beyond base_branch, one per sub-pass, in order.",
+      "The cumulative diff from base_branch to HEAD touches only: docs/audit-gate-notes.md and docs/audit-resume-notes.md.",
+      "StudentPlannerApp/**, StudentPlannerApp.sln, and .github/workflows/** are byte-for-byte unchanged versus base_branch.",
+      "Each completed sub-pass has an AUDIT_APPROVED GitHub comment ledger entry matching its exact checkpoint SHA.",
+      "main was never checked out for writes and was never pushed to.",
+      "No force-push occurred at any point."
+    ],
+    "commands": [
+      "git diff --stat main...HEAD",
+      "test -z \"$(git diff --name-only main...HEAD | grep -vE '^(docs/audit-gate-notes.md|docs/audit-resume-notes.md)$')\"",
+      "test \"$(git log --oneline main..HEAD --grep '^pass(audit-docs-example\\.' | wc -l | tr -d ' ')\" = \"2\""
+    ]
+  }
+}

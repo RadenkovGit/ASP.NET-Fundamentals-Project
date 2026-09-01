@@ -22,6 +22,7 @@ TOP_LEVEL_KEYS = {
     "global_forbidden_paths",
     "sub_passes",
     "final_validation",
+    "audit",
 }
 
 SUB_PASS_KEYS = {
@@ -38,6 +39,8 @@ SUB_PASS_KEYS = {
 }
 
 FINAL_VALIDATION_KEYS = {"requirements", "commands"}
+AUDIT_KEYS = {"required", "mode", "approval_sources", "approved_auditors"}
+REQUIRED_TOP_LEVEL_KEYS = TOP_LEVEL_KEYS - {"audit"}
 
 
 def fail(errors: list[str], path: str, message: str) -> None:
@@ -49,12 +52,14 @@ def is_non_empty_string(value: Any) -> bool:
 
 
 def require_string(errors: list[str], doc: dict[str, Any], key: str) -> None:
-    if not is_non_empty_string(doc.get(key)):
+    lookup_key = key if key in doc else key.rsplit(".", 1)[-1]
+    if not is_non_empty_string(doc.get(lookup_key)):
         fail(errors, key, "must be a non-empty string")
 
 
 def require_string_list(errors: list[str], doc: dict[str, Any], key: str) -> None:
-    value = doc.get(key)
+    lookup_key = key if key in doc else key.rsplit(".", 1)[-1]
+    value = doc.get(lookup_key)
     if not isinstance(value, list) or not value:
         fail(errors, key, "must be a non-empty array")
         return
@@ -66,7 +71,7 @@ def require_string_list(errors: list[str], doc: dict[str, Any], key: str) -> Non
 def validate_plan(plan: dict[str, Any], source: Path) -> list[str]:
     errors: list[str] = []
 
-    missing = TOP_LEVEL_KEYS - set(plan)
+    missing = REQUIRED_TOP_LEVEL_KEYS - set(plan)
     extra = set(plan) - TOP_LEVEL_KEYS
     for key in sorted(missing):
         fail(errors, str(source), f"missing required top-level key '{key}'")
@@ -98,6 +103,29 @@ def validate_plan(plan: dict[str, Any], source: Path) -> list[str]:
         fail(errors, "base_branch", "must not be a pass branch")
     if pass_branch == base_branch:
         fail(errors, "pass_branch", "must differ from base_branch")
+
+
+    audit = plan.get("audit")
+    if audit is not None:
+        if not isinstance(audit, dict):
+            fail(errors, "audit", "must be an object when present")
+        else:
+            missing_audit = AUDIT_KEYS - set(audit)
+            extra_audit = set(audit) - AUDIT_KEYS
+            for key in sorted(missing_audit):
+                fail(errors, "audit", f"missing required key '{key}'")
+            for key in sorted(extra_audit):
+                fail(errors, "audit", f"unknown key '{key}'")
+            if not missing_audit:
+                if not isinstance(audit.get("required"), bool):
+                    fail(errors, "audit.required", "must be a boolean")
+                if audit.get("mode") != "github-comment-ledger":
+                    fail(errors, "audit.mode", "must be exactly 'github-comment-ledger'")
+                require_string_list(errors, audit, "audit.approval_sources")
+                require_string_list(errors, audit, "audit.approved_auditors")
+                for index, auditor in enumerate(audit.get("approved_auditors", [])):
+                    if isinstance(auditor, str) and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9-]{0,38}", auditor):
+                        fail(errors, f"audit.approved_auditors[{index}]", "must be a valid GitHub login")
 
     sub_passes = plan.get("sub_passes")
     if not isinstance(sub_passes, list) or not sub_passes:

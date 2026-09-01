@@ -12,6 +12,11 @@ automated two-agent gate. In particular, ChatGPT can currently audit GitHub stat
 read-only, but cannot reliably write approval markers, create issues, update
 files, or merge PRs through the GitHub connector in this setup.
 
+The optional v2 audit gate adds an explicit pause-and-approve protocol for plans
+that set `audit.required: true`. It still does not pretend ChatGPT has GitHub
+write access; approval is represented as a machine-readable GitHub comment ledger
+entry written by a human, local Codex session, or another authenticated actor.
+
 ## How it's built
 
 | Piece | Location | Purpose |
@@ -19,15 +24,16 @@ files, or merge PRs through the GitHub connector in this setup.
 | Orchestration instructions | `.claude/skills/pass-orchestrator/SKILL.md` | The lifecycle contract and safety gates Claude follows when orchestrating a pass. This is a Claude Code [Agent Skill](https://code.claude.com/docs) — the current project-local mechanism for reusable instructions, invoked explicitly (e.g. `/pass-orchestrator ...`) rather than firing automatically, to avoid silent scope creep. |
 | Pass-plan schema | `pass-plans/pass-plan.schema.json` | JSON Schema defining the machine-readable format for an "X Pass" and its ordered sub-passes. |
 | Example pass plan | `pass-plans/example-docs-pass.json` | A concrete, harmless, docs-only 3-sub-pass plan used to test the orchestrator end-to-end. |
-| Plan validator | `scripts/validate_pass_plan.py` | Dependency-free validation for required fields, pass/sub-pass id shape, branch safety, path fields, and validation command shape. |
+| Audit-gated example | `pass-plans/example-audit-gated-docs-pass.json` | A harmless docs-only plan for testing the optional independent audit pause between sub-passes. |
+| Plan validator | `scripts/validate_pass_plan.py` | Dependency-free validation for required fields, pass/sub-pass id shape, branch safety, audit gate shape, path fields, and validation command shape. |
 | Branch validator | `scripts/validate_pass_branch.py` | Checks a completed `pass/...` branch for one checkpoint commit per sub-pass, deterministic commit messages, and per-commit changed paths within scope. |
 | CI validation | `.github/workflows/pass-orchestrator-validate.yml` | Read-only GitHub Action that validates pass plans on PRs and validates `pass/...` branch PRs against their matching pass plan. |
 | This document | `docs/pass-orchestrator.md` | Human-facing policy explanation. |
 
-No changes were made to `.github/workflows/claude.yml` and no new secrets or GitHub
-App configuration are required — the orchestrator is just a prompt/skill plus a data
-format that the existing `claude-code-action` executes when someone `@claude`-mentions
-it in an issue/PR comment.
+The existing `.github/workflows/claude.yml` remains the execution entrypoint. It
+uses the existing Claude OAuth secret and a narrow `--allowedTools` allowlist for
+the git/read-only GitHub operations the orchestrator needs. No new secrets,
+GitHub Apps, or third-party services are required.
 
 ## How a large pass is started
 
@@ -57,6 +63,70 @@ On resume, the orchestrator must first audit the existing branch history. Existi
 checkpoint commits must match the plan in order and use the exact checkpoint
 message format; unexpected, duplicate, missing, or out-of-order commits block the
 run.
+
+## Optional independent audit gate
+
+Plans may include:
+
+```json
+{
+  "audit": {
+    "required": true,
+    "mode": "github-comment-ledger",
+    "approval_sources": ["chatgpt-relayed-by-human", "codex-local"],
+    "approved_auditors": ["RadenkovGit"]
+  }
+}
+```
+
+When this is enabled, each sub-pass stops after its checkpoint commit is pushed.
+Claude emits:
+
+```text
+AWAITING_AUDIT
+```
+
+This is an expected pause, not a failure. An external reviewer then audits the
+exact checkpoint SHA and posts a machine-readable approval entry in the same
+GitHub issue or PR thread:
+
+```text
+AUDIT_APPROVED
+pass_id: <pass_id>
+sub_pass_id: <sub_pass.id>
+checkpoint_sha: <full checkpoint sha>
+source: <source label from audit.approval_sources>
+auditor: <name or handle>
+summary: <one-line verdict>
+```
+
+An authorized reviewer can explicitly reject a checkpoint with the same fields:
+
+```text
+AUDIT_REJECTED
+pass_id: <pass_id>
+sub_pass_id: <sub_pass.id>
+checkpoint_sha: <full checkpoint sha>
+source: <source label from audit.approval_sources>
+auditor: <name or handle>
+summary: <one-line reason>
+```
+
+On resume, Claude must re-read the comment thread and continue only if the entry
+matches the exact pass id, sub-pass id, checkpoint SHA, accepted source, and an
+authorized GitHub comment author. The GitHub comment author's login must be
+listed in `audit.approved_auditors`, the comment's `authorAssociation` must be
+`OWNER`, `MEMBER`, or `COLLABORATOR`, and the entry's `auditor:` value must match
+that GitHub login. A listed auditor who is not also a repository owner, member,
+or collaborator cannot clear the gate. Missing, stale, rejected, or unauthorized
+approval keeps the pass paused. A rejected or ambiguous audit should not be
+converted into approval.
+
+For the supervised-auto workflow, a local Codex/ChatGPT orchestrator can handle
+`AWAITING_AUDIT` silently by reading the diff, posting the approval comment using
+an authenticated local GitHub CLI session, and re-invoking Claude. The human
+should still be notified only for `BLOCKED_CRITICAL` or final
+`READY_FOR_HUMAN_REVIEW`, unless no configured auditor is available.
 
 ## Checkpoint commit policy
 
@@ -170,6 +240,11 @@ with `403 Resource not accessible by integration`, ChatGPT cannot write an
 Future versions may add a separate reviewer run, persisted machine-readable pass
 state, a GitHub Action orchestrator that pauses between stages, or another
 authenticated coordination channel. Until then, final merge remains manual.
+
+The optional v2 audit gate is the first coordination channel: it creates a
+machine-readable approval protocol without adding auto-merge authority. It is
+still a supervised workflow, because the approval writer is an authenticated
+actor outside the Claude implementer run.
 
 ## Limitations of v1
 

@@ -61,6 +61,38 @@
       "items": { "type": "string" },
       "minItems": 1
     },
+    "audit": {
+      "type": "object",
+      "description": "Optional independent audit gate configuration. Omit or set required=false for v1 behavior.",
+      "required": ["required", "mode", "approval_sources", "approved_auditors"],
+      "additionalProperties": false,
+      "properties": {
+        "required": {
+          "type": "boolean",
+          "description": "When true, the orchestrator stops after each checkpoint commit and waits for a matching APPROVED audit entry before continuing."
+        },
+        "mode": {
+          "type": "string",
+          "description": "Where audit approvals are recorded. github-comment-ledger keeps checkpoint history clean by using issue/PR comments instead of extra pass-branch commits.",
+          "enum": ["github-comment-ledger"]
+        },
+        "approval_sources": {
+          "type": "array",
+          "description": "Accepted source labels for approval entries, e.g. chatgpt-relayed-by-human or codex-local.",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        "approved_auditors": {
+          "type": "array",
+          "description": "GitHub logins allowed to post audit approval entries. The comment author and the entry's auditor field must match one of these logins.",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9-]{0,38}$"
+          },
+          "minItems": 1
+        }
+      }
+    },
     "sub_passes": {
       "type": "array",
       "description": "Ordered list of sub-passes. Executed strictly in array order; never reordered or parallelized.",
