@@ -44,20 +44,49 @@ jobs:
           fi
           python3 scripts/validate_pass_plan.py "${plans[@]}"
 
-      - name: Validate pass branch shape for PR
-        if: startsWith(github.head_ref, 'pass/')
+      - name: Validate pass branch shape when requested
         shell: bash
         env:
-          HEAD_REF: ${{ github.head_ref }}
-          BASE_BRANCH: ${{ github.base_ref }}
+          EVENT_NAME: ${{ github.event_name }}
+          PR_HEAD_REF: ${{ github.head_ref }}
+          PR_BASE_REF: ${{ github.base_ref }}
+          DISPATCH_HEAD_REF: ${{ github.event.inputs.head_ref }}
+          DISPATCH_BASE_REF: ${{ github.event.inputs.base_ref }}
+          DISPATCH_PLAN: ${{ github.event.inputs.plan }}
         run: |
           set -euo pipefail
+
+          HEAD_REF=""
+          BASE_BRANCH=""
+          PLAN_INPUT=""
+
+          if [ "${EVENT_NAME}" = "workflow_dispatch" ]; then
+            HEAD_REF="${DISPATCH_HEAD_REF}"
+            BASE_BRANCH="${DISPATCH_BASE_REF:-main}"
+            PLAN_INPUT="${DISPATCH_PLAN}"
+          elif [ -n "${PR_HEAD_REF}" ] && [[ "${PR_HEAD_REF}" == pass/* ]]; then
+            HEAD_REF="${PR_HEAD_REF}"
+            BASE_BRANCH="${PR_BASE_REF}"
+          fi
+
+          if [ -z "${HEAD_REF}" ]; then
+            echo "No pass branch validation requested."
+            exit 0
+          fi
+
+          if [[ "${HEAD_REF}" != pass/* ]]; then
+            echo "head_ref must start with pass/: ${HEAD_REF}" >&2
+            exit 1
+          fi
+
           BASE_REF="origin/${BASE_BRANCH}"
           git fetch origin \
             "+${BASE_BRANCH}:refs/remotes/origin/${BASE_BRANCH}" \
             "+${HEAD_REF}:refs/remotes/origin/${HEAD_REF}"
 
-          plan="$(python3 - <<'PY'
+          if [ -z "${PLAN_INPUT}" ]; then
+            export HEAD_REF
+            PLAN_INPUT="$(python3 - <<'PY'
 import json
 from pathlib import Path
 import os
@@ -78,25 +107,7 @@ if len(matches) != 1:
 print(matches[0])
 PY
 )"
-
-          python3 scripts/validate_pass_branch.py \
-            --plan "${plan}" \
-            --base-ref "${BASE_REF}" \
-            --head-ref "origin/${HEAD_REF}"
-
-      - name: Validate pass branch shape for manual dispatch
-        if: github.event_name == 'workflow_dispatch' && startsWith(inputs.head_ref, 'pass/')
-        shell: bash
-        env:
-          HEAD_REF: ${{ inputs.head_ref }}
-          BASE_BRANCH: ${{ inputs.base_ref }}
-          PLAN_INPUT: ${{ inputs.plan }}
-        run: |
-          set -euo pipefail
-          BASE_REF="origin/${BASE_BRANCH}"
-          git fetch origin \
-            "+${BASE_BRANCH}:refs/remotes/origin/${BASE_BRANCH}" \
-            "+${HEAD_REF}:refs/remotes/origin/${HEAD_REF}"
+          fi
 
           python3 scripts/validate_pass_branch.py \
             --plan "${PLAN_INPUT}" \
