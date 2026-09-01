@@ -1,0 +1,152 @@
+{
+  "schema_version": "1.0",
+  "pass_id": "orchestrator-v1-5-e2e",
+  "pass_title": "Pass Orchestrator v1.5 End-to-End Acceptance Test",
+  "pass_branch": "pass/orchestrator-v1-5-e2e",
+  "base_branch": "main",
+  "goal": "Exercise the Pass Orchestrator v1.5 workflow end-to-end with three small, harmless, documentation-only sub-passes that describe the orchestrator itself, provide an operational checklist, and summarize the resulting end-to-end run, without touching any application code.",
+  "global_constraints": [
+    "Never modify anything under StudentPlannerApp/.",
+    "Never modify StudentPlannerApp.sln.",
+    "Never modify .github/workflows/**.",
+    "Only add or edit the three declared Markdown files under docs/.",
+    "Never touch the main branch; all work happens on pass_branch only.",
+    "Never commit unrelated or accidental files (build output, .vs/, bin/, obj/)."
+  ],
+  "global_forbidden_paths": [
+    "StudentPlannerApp/**",
+    "StudentPlannerApp.sln",
+    ".github/workflows/**",
+    ".vs/**",
+    "bin/**",
+    "obj/**"
+  ],
+  "sub_passes": [
+    {
+      "id": "orchestrator-v1-5-e2e.1",
+      "title": "Add orchestrator v1.5 overview doc",
+      "objective": "Create docs/orchestrator-v1-5-overview.md briefly explaining what Pass Orchestrator v1.5 is.",
+      "allowed_scope": [
+        "docs/orchestrator-v1-5-overview.md (new file)"
+      ],
+      "allowed_paths": [
+        "docs/orchestrator-v1-5-overview.md"
+      ],
+      "forbidden_scope": [
+        "StudentPlannerApp/**",
+        "docs/orchestrator-v1-5-checklist.md",
+        "docs/orchestrator-v1-5-e2e-result.md",
+        ".github/**"
+      ],
+      "forbidden_paths": [
+        "StudentPlannerApp/**",
+        "docs/orchestrator-v1-5-checklist.md",
+        "docs/orchestrator-v1-5-e2e-result.md",
+        ".github/**"
+      ],
+      "acceptance_criteria": [
+        "docs/orchestrator-v1-5-overview.md exists.",
+        "It briefly explains what Pass Orchestrator v1.5 is.",
+        "It mentions pass plans, isolated pass/* branches, checkpoint commits, validation gates, BLOCKED_CRITICAL, READY_FOR_HUMAN_REVIEW, and human-only merge.",
+        "No other file is modified."
+      ],
+      "validation": [
+        "test -f docs/orchestrator-v1-5-overview.md",
+        "grep -q 'pass plan' docs/orchestrator-v1-5-overview.md",
+        "grep -q 'pass/' docs/orchestrator-v1-5-overview.md",
+        "grep -q 'checkpoint commit' docs/orchestrator-v1-5-overview.md",
+        "grep -q 'BLOCKED_CRITICAL' docs/orchestrator-v1-5-overview.md",
+        "grep -q 'READY_FOR_HUMAN_REVIEW' docs/orchestrator-v1-5-overview.md",
+        "test -z \"$(git status --porcelain -- . ':!docs/orchestrator-v1-5-overview.md')\""
+      ]
+    },
+    {
+      "id": "orchestrator-v1-5-e2e.2",
+      "title": "Add orchestrator v1.5 operational checklist",
+      "objective": "Create docs/orchestrator-v1-5-checklist.md with a concise operational checklist for starting, executing, validating, reviewing, and merging a pass, making clear that main is never modified by the orchestrator.",
+      "allowed_scope": [
+        "docs/orchestrator-v1-5-checklist.md (new file)"
+      ],
+      "allowed_paths": [
+        "docs/orchestrator-v1-5-checklist.md"
+      ],
+      "forbidden_scope": [
+        "StudentPlannerApp/**",
+        "docs/orchestrator-v1-5-overview.md",
+        "docs/orchestrator-v1-5-e2e-result.md",
+        ".github/**"
+      ],
+      "forbidden_paths": [
+        "StudentPlannerApp/**",
+        "docs/orchestrator-v1-5-overview.md",
+        "docs/orchestrator-v1-5-e2e-result.md",
+        ".github/**"
+      ],
+      "acceptance_criteria": [
+        "docs/orchestrator-v1-5-checklist.md exists.",
+        "It provides a concise operational checklist covering starting, executing, validating, reviewing, and merging a pass.",
+        "It explicitly states that main is never modified by the orchestrator.",
+        "No other file is modified."
+      ],
+      "validation": [
+        "test -f docs/orchestrator-v1-5-checklist.md",
+        "grep -qi 'main' docs/orchestrator-v1-5-checklist.md",
+        "grep -qi 'never' docs/orchestrator-v1-5-checklist.md",
+        "grep -qi 'merge' docs/orchestrator-v1-5-checklist.md",
+        "test -z \"$(git status --porcelain -- . ':!docs/orchestrator-v1-5-checklist.md')\""
+      ]
+    },
+    {
+      "id": "orchestrator-v1-5-e2e.3",
+      "title": "Summarize orchestrator v1.5 end-to-end result",
+      "objective": "Create docs/orchestrator-v1-5-e2e-result.md summarizing what sub-passes .1 and .2 produced, referencing the pass plan file pass-plans/orchestrator-v1-5-e2e.json, and stating that this file is the final E2E artifact.",
+      "allowed_scope": [
+        "docs/orchestrator-v1-5-e2e-result.md (new file)"
+      ],
+      "allowed_paths": [
+        "docs/orchestrator-v1-5-e2e-result.md"
+      ],
+      "forbidden_scope": [
+        "StudentPlannerApp/**",
+        "docs/orchestrator-v1-5-overview.md",
+        "docs/orchestrator-v1-5-checklist.md",
+        ".github/**"
+      ],
+      "forbidden_paths": [
+        "StudentPlannerApp/**",
+        "docs/orchestrator-v1-5-overview.md",
+        "docs/orchestrator-v1-5-checklist.md",
+        ".github/**"
+      ],
+      "acceptance_criteria": [
+        "docs/orchestrator-v1-5-e2e-result.md exists.",
+        "It summarizes what sub-passes orchestrator-v1-5-e2e.1 and orchestrator-v1-5-e2e.2 produced.",
+        "It references/links the pass plan file pass-plans/orchestrator-v1-5-e2e.json.",
+        "It states that this file is the final E2E artifact.",
+        "No other file is modified."
+      ],
+      "validation": [
+        "test -f docs/orchestrator-v1-5-e2e-result.md",
+        "grep -q 'orchestrator-v1-5-e2e.1' docs/orchestrator-v1-5-e2e-result.md",
+        "grep -q 'orchestrator-v1-5-e2e.2' docs/orchestrator-v1-5-e2e-result.md",
+        "grep -q 'pass-plans/orchestrator-v1-5-e2e.json' docs/orchestrator-v1-5-e2e-result.md",
+        "grep -qi 'final E2E artifact' docs/orchestrator-v1-5-e2e-result.md",
+        "test -z \"$(git status --porcelain -- . ':!docs/orchestrator-v1-5-e2e-result.md')\""
+      ]
+    }
+  ],
+  "final_validation": {
+    "requirements": [
+      "Exactly three checkpoint commits exist on pass_branch beyond base_branch, one per sub-pass, in order.",
+      "The cumulative diff from base_branch to HEAD touches only: docs/orchestrator-v1-5-overview.md, docs/orchestrator-v1-5-checklist.md, docs/orchestrator-v1-5-e2e-result.md.",
+      "StudentPlannerApp/**, StudentPlannerApp.sln, and .github/workflows/** are byte-for-byte unchanged versus base_branch.",
+      "main was never checked out for writes and was never pushed to.",
+      "No force-push occurred at any point."
+    ],
+    "commands": [
+      "git diff --stat main...HEAD",
+      "test -z \"$(git diff --name-only main...HEAD | grep -vE '^(docs/orchestrator-v1-5-overview.md|docs/orchestrator-v1-5-checklist.md|docs/orchestrator-v1-5-e2e-result.md)$')\"",
+      "test \"$(git log --oneline main..HEAD | wc -l | tr -d ' ')\" = \"3\""
+    ]
+  }
+}
