@@ -49,12 +49,14 @@ def is_non_empty_string(value: Any) -> bool:
 
 
 def require_string(errors: list[str], doc: dict[str, Any], key: str) -> None:
-    if not is_non_empty_string(doc.get(key)):
+    lookup_key = key if key in doc else key.rsplit(".", 1)[-1]
+    if not is_non_empty_string(doc.get(lookup_key)):
         fail(errors, key, "must be a non-empty string")
 
 
 def require_string_list(errors: list[str], doc: dict[str, Any], key: str) -> None:
-    value = doc.get(key)
+    lookup_key = key if key in doc else key.rsplit(".", 1)[-1]
+    value = doc.get(lookup_key)
     if not isinstance(value, list) or not value:
         fail(errors, key, "must be a non-empty array")
         return
