@@ -1,10 +1,28 @@
 name: Pass Orchestrator Validation
 
 on:
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
+    inputs:
+      plan:
+        description: "Pass plan path"
+        required: true
+        type: string
+        default: pass-plans/example-docs-pass.json
+
+permissions:
+  contents: read
 
 jobs:
-  smoke:
+  validate:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "workflow_dispatch works"
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate pass plan
+        shell: bash
+        run: |
+          python3 scripts/validate_pass_plan.py "${{ inputs.plan || 'pass-plans/example-docs-pass.json' }}"
